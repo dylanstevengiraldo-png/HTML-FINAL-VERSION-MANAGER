@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Motor de Estilos Excel Pro - Edición Máster</title>
+    <style>
+        :root { --bg: #1e1e24; --panel: #2b2b36; --text: #f5f5f5; --accent: #3b82f6; --accent-hover: #2563eb; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        h2, h3 { margin-top: 0; color: #fff; }
+        
+        .layout { display: flex; flex-direction: column; gap: 20px; max-width: 1200px; margin: 0 auto; }
+        .panel { background: var(--panel); padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        
+        .toolbar { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; background: #222; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        input[type="number"], select { padding: 8px; border-radius: 6px; border: 1px solid #555; background: #333; color: white; width: 70px;}
+        
+        /* Controles de Versión Inteligentes */
+        .checkbox-group { display: flex; gap: 15px; background: #1a1a20; padding: 10px 15px; border-radius: 8px; border: 1px solid #444;}
+        .checkbox-label { display: flex; align-items: center; gap: 5px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .checkbox-label.disabled-style { opacity: 0.4; filter: grayscale(100%); }
+        .checkbox-label input { width: 16px; height: 16px; cursor: pointer; }
+
+        .editor-container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #444; }
+        .color-base-group { display: flex; align-items: center; gap: 15px; background: #222; padding: 10px 15px; border-radius: 8px; }
+        input[type="color"].main-color { width: 60px; height: 60px; border: none; cursor: pointer; background: transparent; border-radius: 6px; }
+
+        /* Vistas previas estilo Excel */
+        .previews-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+        .preview-box { background: #fff; padding: 15px; border-radius: 8px; color: #000; font-size: 13px; position: relative; }
+        .preview-title { font-weight: bold; margin-bottom: 10px; color: #555; font-size: 12px; text-transform: uppercase; border-bottom: 1px solid #ddd; padding-bottom: 5px; display:flex; justify-content:space-between;}
+        
+        table { width: 100%; border-collapse: collapse; font-family: Calibri, sans-serif; background: transparent; }
+        th, td { padding: 6px 10px; text-align: left; }
+        th { font-weight: bold; color: white; }
+        
+        .no-fill { background-image: linear-gradient(45deg, #eee 25%, transparent 25%), linear-gradient(-45deg, #eee 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #eee 75%), linear-gradient(-45deg, transparent 75%, #eee 75%); background-size: 10px 10px; background-position: 0 0, 0 5px, 5px -5px, -5px 0px; background-color: white; }
+
+        /* Botones */
+        button { padding: 10px 18px; border-radius: 6px; border: none; font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.2s; color: white; }
+        button:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        .btn-gen { background: #8b5cf6; }
+        .btn-save { background: var(--accent); font-size: 16px; padding: 12px 24px; }
+        .btn-dl { background: #10b981; font-size: 18px; padding: 15px 30px; width: 100%; margin-top: 10px; box-shadow: 0 4px 10px rgba(16,185,129,0.3); }
+        .btn-clear { background: #ef4444; }
+
+        /* GALERÍA E ICONOS (Estilo Excel) */
+        .gallery-grid { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 15px; }
+        .gallery-item { background: #333; padding: 10px; border-radius: 8px; width: 110px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        
+        /* Grid del Icono */
+        .excel-icon { display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(5, 1fr); gap: 1px; width: 100%; height: 65px; background: white; border: 1px solid #777; cursor: pointer; transition: 0.2s; padding: 1px; }
+        .excel-icon:hover { transform: scale(1.08); box-shadow: 0 0 12px rgba(255,255,255,0.3); }
+        .icon-cell { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
+        .dash { width: 60%; height: 2px; border-radius: 1px; background: #333; }
+        .dash-w { background: #fff; }
+
+        .item-actions { display: flex; gap: 5px; width: 100%; }
+        .item-actions button { flex: 1; padding: 6px; font-size: 11px; border-radius: 4px; }
+        .btn-edit { background: #f59e0b; }
+        .btn-del { background: #ef4444; }
+        
+        .info-txt { font-size: 12px; color: #aaa; margin-top: 5px; display: block; }
+    </style>
+</head>
+<body>
+
+<div class="layout">
+    
+    <!-- GENERADOR POR LOTES -->
+    <div class="panel">
+        <h3>1. Generador Automático por Lotes</h3>
+        <div class="toolbar">
+            <label>Columnas (Ancho):</label>
+            <input type="number" id="genCols" value="7" min="1" max="20">
+            
+            <label style="margin-left:10px;">Lotes (Filas):</label>
+            <input type="number" id="genLotes" value="2" min="1" max="20">
+            
+            <label style="margin-left:10px;">Saturación:</label>
+            <select id="genSat" style="width:auto;">
+                <option value="vibrant">Vibrante</option>
+                <option value="classic">Clásico</option>
+                <option value="pastel">Pastel</option>
+            </select>
+            
+            <button class="btn-gen" onclick="generateSpectrum()">Generar Espectro Automático</button>
+        </div>
+    </div>
+
+    <!-- ÁREA DE EDICIÓN -->
+    <div class="panel">
+        <div class="editor-container">
+            <div class="color-base-group">
+                <input type="color" id="baseColor" class="main-color" value="#107C41" oninput="updateLivePreview()">
+                <div>
+                    <h3 style="margin:0;">2. Previsualización y Edición Manual</h3>
+                    <span class="info-txt">Edita el color y guárdalo. V4 ahora solo tiene líneas horizontales.</span>
+                </div>
+            </div>
+            <button class="btn-save" onclick="saveCurrentToGallery()">+ Agregar Color a Galería</button>
+        </div>
+
+        <!-- VISTAS PREVIAS -->
+        <div class="previews-grid" id="livePreviews"></div>
+    </div>
+
+    <!-- GALERÍA Y DESCARGA -->
+    <div class="panel">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap:15px;">
+            <h3>3. Galería de Diseños <span id="countBadge" style="background:#555; padding: 2px 8px; border-radius:10px; font-size:14px;">0</span></h3>
+            <button class="btn-clear" onclick="clearGallery()">Vaciar Galería</button>
+        </div>
+        
+        <!-- Contenedor Iconos -->
+        <div class="gallery-grid" id="galleryContainer"></div>
+
+        <hr style="border-color:#444; margin: 25px 0;">
+        
+        <div>
+            <h3 style="margin-bottom: 10px;">4. Exportación VBA a Excel</h3>
+            <div class="toolbar" style="background:transparent; padding:0;">
+                <span style="font-weight:bold;">Versiones a generar:</span>
+                <div class="checkbox-group">
+                    <label class="checkbox-label" id="lbl_v1"><input type="checkbox" id="chk_v1" checked onchange="handleCheckboxes()"> V1 (1 Raya)</label>
+                    <label class="checkbox-label" id="lbl_v2"><input type="checkbox" id="chk_v2" checked onchange="handleCheckboxes()"> V2 (2 Rayas)</label>
+                    <label class="checkbox-label" id="lbl_v3"><input type="checkbox" id="chk_v3" checked onchange="handleCheckboxes()"> V3 (Gris)</label>
+                    <label class="checkbox-label" id="lbl_v4"><input type="checkbox" id="chk_v4" checked onchange="handleCheckboxes()"> V4 (Sin relleno)</label>
+                </div>
+            </div>
+            <span class="info-txt">VBA incluirá una macro "Instalar_TODOS_Los_Lotes" y macros separadas por cada lote (ej. "Instalar_Lote_01" = 7 a 28 tablas a la vez).</span>
+            <button class="btn-dl" onclick="downloadBAS()">Descargar Archivo .BAS (Macro Completa)</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    let savedPalettes = [];
+    
+    // --- MATEMÁTICA DE COLOR ---
+    function hexToRgb(hex) {
+        let bigint = parseInt(hex.slice(1), 16);
+        return { r: (bigint >> 16) & 255, g: (bigint >> 8) & 255, b: bigint & 255 };
+    }
+    function rgbToHex(r, g, b) {
+        return "#" + (1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1).toUpperCase();
+    }
+    function hslToHex(h, s, l) {
+        l /= 100;
+        const a = s * Math.min(l, 1 - l) / 100;
+        const f = n => {
+            const k = (n + h / 30) % 12;
+            const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+            return Math.round(255 * color).toString(16).padStart(2, '0');
+        };
+        return `#${f(0)}${f(8)}${f(4)}`;
+    }
+    function lighten(rgb, pct) {
+        return {
+            r: Math.min(255, Math.floor(rgb.r + (255 - rgb.r) * pct)),
+            g: Math.min(255, Math.floor(rgb.g + (255 - rgb.g) * pct)),
+            b: Math.min(255, Math.floor(rgb.b + (255 - rgb.b) * pct))
+        };
+    }
+    function darken(rgb, pct) {
+        return {
+            r: Math.floor(rgb.r * (1 - pct)),
+            g: Math.floor(rgb.g * (1 - pct)),
+            b: Math.floor(rgb.b * (1 - pct))
+        };
+    }
+
+    function calcPalette(baseHex) {
+        const base = hexToRgb(baseHex);
+        return {
+            base: baseHex,
+            header: rgbToHex(...Object.values(darken(base, 0.25))),
+            s60: rgbToHex(...Object.values(lighten(base, 0.60))),
+            s80: rgbToHex(...Object.values(lighten(base, 0.80))),
+            gray: "#EFEFEF"
+        };
+    }
+
+    // --- LÓGICA DE CHECKBOXES ---
+    function handleCheckboxes() {
+        const ids = ['v1', 'v2', 'v3', 'v4'];
+        const checks = ids.map(id => document.getElementById(`chk_${id}`));
+        const activeCount = checks.filter(c => c.checked).length;
+
+        checks.forEach(c => {
+            const label = document.getElementById(`lbl_${c.id.split('_')[1]}`);
+            
+            if (activeCount === 1 && c.checked) {
+                c.disabled = true; // Bloquea el último para no quedar en 0
+            } else {
+                c.disabled = false;
+            }
+
+            if (!c.checked) {
+                label.classList.add('disabled-style');
+            } else {
+                label.classList.remove('disabled-style');
+            }
+        });
+    }
+
+    // --- RENDERIZAR VISTAS PREVIAS HTML ---
+    function updateLivePreview() {
+        const hex = document.getElementById('baseColor').value;
+        const p = calcPalette(hex);
+        const container = document.getElementById('livePreviews');
+
+        container.innerHTML = `
+            <!-- V1 -->
+            <div class="preview-box no-fill">
+                <div class="preview-title" style="background:white;"><span>V1: 1 Raya / Ext Color</span></div>
+                <table style="border: 2px solid ${p.base}; background:white;">
+                    <thead>
+                        <tr>
+                            <th style="background:${p.header}; border-bottom: 2px solid ${p.base};">Col 1</th>
+                            <th style="background:${p.header}; border-bottom: 2px solid ${p.base};">Col 2</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="background:${p.s60};"><td style="border-bottom:1px solid ${p.base};">Banda 1</td><td style="border-bottom:1px solid ${p.base};">100</td></tr>
+                        <tr style="background:transparent;"><td style="border-bottom:1px solid ${p.base};">Sin Relleno</td><td style="border-bottom:1px solid ${p.base};">200</td></tr>
+                        <tr style="background:${p.s60};"><td style="border-bottom:2px solid ${p.base};">Banda 1</td><td style="border-bottom:2px solid ${p.base};">150</td></tr>
+                        <tr style="background:transparent; font-weight:bold;"><td>Total</td><td>450</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- V2 -->
+            <div class="preview-box">
+                <div class="preview-title"><span>V2: 2 Rayas / Int Blanco</span></div>
+                <table style="border: none;">
+                    <thead>
+                        <tr>
+                            <th style="background:${p.header}; border-bottom: 3px solid white; border-right: 1px solid white;">Col 1</th>
+                            <th style="background:${p.header}; border-bottom: 3px solid white;">Col 2</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="background:${p.s60};"><td style="border: 1px solid white;">Banda 1 (60%)</td><td style="border: 1px solid white;">100</td></tr>
+                        <tr style="background:${p.s80};"><td style="border: 1px solid white;">Banda 2 (80%)</td><td style="border: 1px solid white;">200</td></tr>
+                        <tr style="background:${p.header}; color:white; font-weight:bold;"><td style="border: 1px solid white;">Total</td><td style="border: 1px solid white;">300</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- V3 -->
+            <div class="preview-box no-fill">
+                <div class="preview-title" style="background:white;"><span>V3: Gris / Ext Negro</span></div>
+                <table style="border: 2px solid #000; background:white;">
+                    <thead>
+                        <tr>
+                            <th style="background:${p.header}; border-bottom: 2px solid #000;">Col 1</th>
+                            <th style="background:${p.header}; border-bottom: 2px solid #000;">Col 2</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="background:${p.gray};"><td>Gris</td><td>100</td></tr>
+                        <tr style="background:transparent;"><td>Sin Relleno</td><td>200</td></tr>
+                        <tr style="background:${p.gray}; border-bottom: 2px solid #000;"><td>Gris</td><td>150</td></tr>
+                        <tr style="background:transparent; font-weight:bold;"><td>Total</td><td>450</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- V4 (SIN LÍNEAS VERTICALES) -->
+            <div class="preview-box no-fill">
+                <div class="preview-title" style="background:white;"><span>V4: Sin Relleno / Malla H</span></div>
+                <table style="border: 2px solid ${p.base}; background:transparent;">
+                    <thead>
+                        <tr>
+                            <th style="background:${p.header}; border-bottom: 2px solid ${p.base};">Col 1</th>
+                            <th style="background:${p.header}; border-bottom: 2px solid ${p.base};">Col 2</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="background:transparent;"><td style="border-bottom: 1px solid ${p.base};">Sin Relleno</td><td style="border-bottom: 1px solid ${p.base};">100</td></tr>
+                        <tr style="background:transparent;"><td style="border-bottom: 1px solid ${p.base};">Sin Relleno</td><td style="border-bottom: 1px solid ${p.base};">200</td></tr>
+                        <tr style="background:transparent; font-weight:bold;"><td style="border-top: 2px solid ${p.base};">Total</td><td style="border-top: 2px solid ${p.base};">300</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    // --- ACCIONES DE GALERÍA ---
+    function generateSpectrum() {
+        const cols = parseInt(document.getElementById('genCols').value);
+        const lotes = parseInt(document.getElementById('genLotes').value);
+        const total = cols * lotes;
+        const satMode = document.getElementById('genSat').value;
+        
+        let s = 85; let l = 45;
+        if(satMode === 'vibrant') { s = 100; l = 48; }
+        if(satMode === 'classic') { s = 75; l = 40; }
+        if(satMode === 'pastel') { s = 65; l = 60; }
+
+        for(let i=0; i<total; i++) {
+            let h = (360 / total) * i;
+            let hex = hslToHex(h, s, l); 
+            savedPalettes.push({ id: Date.now() + Math.random(), ...calcPalette(hex) });
+        }
+        renderGallery();
+    }
+
+    function saveCurrentToGallery() {
+        const hex = document.getElementById('baseColor').value;
+        savedPalettes.push({ id: Date.now() + Math.random(), ...calcPalette(hex) });
+        renderGallery();
+    }
+
+    function loadToEditor(hex) {
+        document.getElementById('baseColor').value = hex;
+        updateLivePreview();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function renderGallery() {
+        const container = document.getElementById('galleryContainer');
+        document.getElementById('countBadge').innerText = savedPalettes.length;
+        if(savedPalettes.length === 0) { container.innerHTML = '<span style="color:#888;">Galería vacía.</span>'; return; }
+
+        container.innerHTML = '';
+        savedPalettes.forEach((item, index) => {
+            // Recreación Perfecta del Ícono de Excel
+            let iconHTML = `<div class="excel-icon" title="Editar ${item.base}" onclick="loadToEditor('${item.base}')">`;
+            
+            for(let r=0; r<5; r++) {
+                for(let c=0; c<4; c++) {
+                    let bg = '#fff'; let dashClass = 'dash';
+                    if(r === 0) { bg = item.header; dashClass = 'dash dash-w'; } // Encabezado
+                    else if(r === 1 || r === 3) { bg = item.s60; } // Banda 1
+                    else if(r === 2 || r === 4) { bg = item.s80; } // Banda 2
+
+                    iconHTML += `<div class="icon-cell" style="background:${bg};"><div class="${dashClass}"></div></div>`;
+                }
+            }
+            iconHTML += `</div>`;
+
+            container.innerHTML += `
+                <div class="gallery-item">
+                    <span style="font-size:11px; color:#aaa;">C ${index + 1}</span>
+                    ${iconHTML}
+                    <div class="item-actions">
+                        <button class="btn-edit" onclick="loadToEditor('${item.base}')">Editar</button>
+                        <button class="btn-del" onclick="deleteColor(${item.id})">Quitar</button>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    function deleteColor(id) { savedPalettes = savedPalettes.filter(p => p.id !== id); renderGallery(); }
+    function clearGallery() { savedPalettes = []; renderGallery(); }
+
+    // --- MOTOR VBA ROBUSTO (INSTALACIÓN POR LOTES) ---
+    function downloadBAS() {
+        if (savedPalettes.length === 0) return alert('No hay colores en la galería.');
+        
+        const v1 = document.getElementById('chk_v1').checked;
+        const v2 = document.getElementById('chk_v2').checked;
+        const v3 = document.getElementById('chk_v3').checked;
+        const v4 = document.getElementById('chk_v4').checked;
+        
+        if (!v1 && !v2 && !v3 && !v4) return alert('Selecciona al menos 1 versión.');
+
+        const cols = parseInt(document.getElementById('genCols').value);
+        const totalLotes = Math.ceil(savedPalettes.length / cols);
+        const xlNone = -4142;
+
+        let vba = `Attribute VB_Name = "MotorEstilosPro"\n' Motor Avanzado por Lotes\n\n`;
+        
+        // MACRO MAESTRA
+        vba += `Sub Instalar_TODOS_Los_Lotes()\n    On Error Resume Next\n    Application.ScreenUpdating = False\n`;
+        for(let l=0; l<totalLotes; l++) {
+            vba += `    Call Instalar_Lote_${(l+1).toString().padStart(2, '0')}\n`;
+        }
+        vba += `    Application.ScreenUpdating = True\n    MsgBox "Todos los lotes instalados.", vbInformation\nEnd Sub\n\n`;
+
+        // MACROS POR LOTE (Ej: Activa las 7-28 tablas a la vez)
+        for(let l=0; l<totalLotes; l++) {
+            const lStr = (l+1).toString().padStart(2, '0');
+            vba += `Sub Instalar_Lote_${lStr}()\n    On Error Resume Next\n    Application.ScreenUpdating = False\n`;
+            if(v1) vba += `    Call Generar_Lote${lStr}_V1\n`;
+            if(v2) vba += `    Call Generar_Lote${lStr}_V2\n`;
+            if(v3) vba += `    Call Generar_Lote${lStr}_V3\n`;
+            if(v4) vba += `    Call Generar_Lote${lStr}_V4\n`;
+            vba += `    Application.ScreenUpdating = True\nEnd Sub\n\n`;
+        }
+
+        // GENERACIÓN DE TABLAS REALES
+        for(let l=0; l<totalLotes; l++) {
+            const chunk = savedPalettes.slice(l * cols, (l + 1) * cols);
+            const lStr = (l + 1).toString().padStart(2, '0');
+
+            // --- V1 ---
+            if(v1) {
+                vba += `Sub Generar_Lote${lStr}_V1()\n    On Error Resume Next\n    Dim ts As TableStyle\n`;
+                chunk.forEach((data, i) => {
+                    const cStr = (i + 1).toString().padStart(2, '0');
+                    const b = hexToRgb(data.base); const h = hexToRgb(data.header); const s60 = hexToRgb(data.s60);
+                    vba += `    Set ts = ActiveWorkbook.TableStyles.Add("L${lStr}_V1_C${cStr}"): ts.ShowAsAvailableTableStyle = True\n`;
+                    vba += `    ts.TableStyleElements(xlWholeTable).Borders.Color = RGB(${b.r}, ${b.g}, ${b.b})\n`;
+                    vba += `    ts.TableStyleElements(xlWholeTable).Borders(xlInsideHorizontal).Color = RGB(${b.r}, ${b.g}, ${b.b})\n`;
+                    vba += `    With ts.TableStyleElements(xlHeaderRow)\n        .Interior.Color = RGB(${h.r}, ${h.g}, ${h.b})\n        .Font.Color = RGB(255,255,255)\n        .Font.Bold = True\n        .Borders(xlEdgeBottom).Color = RGB(${b.r}, ${b.g}, ${b.b})\n    End With\n`;
+                    vba += `    ts.TableStyleElements(xlRowStripe1).Interior.Color = RGB(${s60.r}, ${s60.g}, ${s60.b})\n`;
+                    vba += `    ts.TableStyleElements(xlRowStripe2).Interior.Pattern = ${xlNone}\n`;
+                    vba += `    ts.TableStyleElements(xlTotalRow).Borders(xlEdgeTop).Color = RGB(${b.r}, ${b.g}, ${b.b})\n`;
+                });
+                vba += `End Sub\n\n`;
+            }
+
+            // --- V2 ---
+            if(v2) {
+                vba += `Sub Generar_Lote${lStr}_V2()\n    On Error Resume Next\n    Dim ts As TableStyle\n`;
+                chunk.forEach((data, i) => {
+                    const cStr = (i + 1).toString().padStart(2, '0');
+                    const h = hexToRgb(data.header); const s60 = hexToRgb(data.s60); const s80 = hexToRgb(data.s80);
+                    vba += `    Set ts = ActiveWorkbook.TableStyles.Add("L${lStr}_V2_C${cStr}"): ts.ShowAsAvailableTableStyle = True\n`;
+                    vba += `    ts.TableStyleElements(xlWholeTable).Borders(xlInsideHorizontal).Color = RGB(255,255,255)\n`;
+                    vba += `    ts.TableStyleElements(xlWholeTable).Borders(xlInsideVertical).Color = RGB(255,255,255)\n`;
+                    vba += `    With ts.TableStyleElements(xlHeaderRow)\n        .Interior.Color = RGB(${h.r}, ${h.g}, ${h.b})\n        .Font.Color = RGB(255,255,255)\n        .Borders(xlEdgeBottom).Color = RGB(255,255,255)\n    End With\n`;
+                    vba += `    ts.TableStyleElements(xlRowStripe1).Interior.Color = RGB(${s60.r}, ${s60.g}, ${s60.b})\n`;
+                    vba += `    ts.TableStyleElements(xlRowStripe2).Interior.Color = RGB(${s80.r}, ${s80.g}, ${s80.b})\n`;
+                    vba += `    ts.TableStyleElements(xlTotalRow).Interior.Color = RGB(${h.r}, ${h.g}, ${h.b})\n`;
+                    vba += `    ts.TableStyleElements(xlTotalRow).Font.Color = RGB(255,255,255)\n`;
+                });
+                vba += `End Sub\n\n`;
+            }
+
+            // --- V3 ---
+            if(v3) {
+                vba += `Sub Generar_Lote${lStr}_V3()\n    On Error Resume Next\n    Dim ts As TableStyle\n`;
+                chunk.forEach((data, i) => {
+                    const cStr = (i + 1).toString().padStart(2, '0');
+                    const h = hexToRgb(data.header); const g = hexToRgb(data.gray);
+                    vba += `    Set ts = ActiveWorkbook.TableStyles.Add("L${lStr}_V3_C${cStr}"): ts.ShowAsAvailableTableStyle = True\n`;
+                    vba += `    ts.TableStyleElements(xlWholeTable).Borders.Color = RGB(0,0,0)\n`;
+                    vba += `    With ts.TableStyleElements(xlHeaderRow)\n        .Interior.Color = RGB(${h.r}, ${h.g}, ${h.b})\n        .Font.Color = RGB(255,255,255)\n        .Borders(xlEdgeBottom).Color = RGB(0,0,0)\n    End With\n`;
+                    vba += `    ts.TableStyleElements(xlRowStripe1).Interior.Color = RGB(${g.r}, ${g.g}, ${g.b})\n`;
+                    vba += `    ts.TableStyleElements(xlRowStripe2).Interior.Pattern = ${xlNone}\n`;
+                    vba += `    ts.TableStyleElements(xlTotalRow).Borders(xlEdgeTop).Color = RGB(0,0,0)\n`;
+                });
+                vba += `End Sub\n\n`;
+            }
+
+            // --- V4 (SIN LINEAS VERTICALES) ---
+            if(v4) {
+                vba += `Sub Generar_Lote${lStr}_V4()\n    On Error Resume Next\n    Dim ts As TableStyle\n`;
+                chunk.forEach((data, i) => {
+                    const cStr = (i + 1).toString().padStart(2, '0');
+                    const b = hexToRgb(data.base); const h = hexToRgb(data.header);
+                    vba += `    Set ts = ActiveWorkbook.TableStyles.Add("L${lStr}_V4_C${cStr}"): ts.ShowAsAvailableTableStyle = True\n`;
+                    vba += `    ts.TableStyleElements(xlWholeTable).Borders.Color = RGB(${b.r}, ${b.g}, ${b.b})\n`;
+                    vba += `    ts.TableStyleElements(xlWholeTable).Borders(xlInsideHorizontal).Color = RGB(${b.r}, ${b.g}, ${b.b})\n`;
+                    vba += `    With ts.TableStyleElements(xlHeaderRow)\n        .Interior.Color = RGB(${h.r}, ${h.g}, ${h.b})\n        .Font.Color = RGB(255,255,255)\n        .Borders(xlEdgeBottom).Color = RGB(${b.r}, ${b.g}, ${b.b})\n    End With\n`;
+                    vba += `    ts.TableStyleElements(xlRowStripe1).Interior.Pattern = ${xlNone}\n`;
+                    vba += `    ts.TableStyleElements(xlRowStripe2).Interior.Pattern = ${xlNone}\n`;
+                    vba += `    ts.TableStyleElements(xlTotalRow).Borders(xlEdgeTop).Color = RGB(${b.r}, ${b.g}, ${b.b})\n`;
+                });
+                vba += `End Sub\n\n`;
+            }
+        }
+
+        const blob = new Blob([vba], { type: 'text/plain' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'Lotes_Estilos_Excel_Master.bas';
+        a.click();
+    }
+
+    // Inicializar todo
+    handleCheckboxes();
+    updateLivePreview();
+</script>
+
+</body>
+</html>
